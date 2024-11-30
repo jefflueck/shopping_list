@@ -20,10 +20,17 @@ class _NewItemState extends State<NewItem> {
   var _enteredName = '';
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.other]!;
+  var _isSending = false;
 
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() {
+        _isSending = true;
+      });
+
+      final navigatorContext = context;
+      final currentContext = context;
       final url = Uri.https('shopping-list-24da1-default-rtdb.firebaseio.com',
           'shopping-list.json');
 
@@ -38,13 +45,26 @@ class _NewItemState extends State<NewItem> {
           },
         ),
       );
-      print(response.body);
-      print(response.statusCode);
 
-      if (!context.mounted) {
-        return;
+      if (response.statusCode == 200) {
+        if (!navigatorContext.mounted) return;
+        Navigator.of(navigatorContext).pop();
+      } else {
+        if (!currentContext.mounted) return;
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to save item. Please try again later.'),
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: 'Dismiss',
+              onPressed: () {
+                if (!currentContext.mounted) return;
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
       }
-      Navigator.of(context).pop();
     }
   }
 
@@ -137,14 +157,21 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      _formKey.currentState!.reset();
-                    },
+                    onPressed: _isSending
+                        ? null
+                        : () {
+                            _formKey.currentState!.reset();
+                          },
                     child: const Text('Reset'),
                   ),
                   ElevatedButton(
-                    onPressed: _saveItem,
-                    child: const Text('Save'),
+                    onPressed: _isSending ? null : _saveItem,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator())
+                        : const Text('Save'),
                   )
                 ],
               )

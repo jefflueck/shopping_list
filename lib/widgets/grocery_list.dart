@@ -27,14 +27,22 @@ class _GroceryListState extends State<GroceryList> {
     final url = Uri.https('shopping-list-24da1-default-rtdb.firebaseio.com',
         'shopping-list.json');
     final response = await http.get(url);
-    final Map<String, dynamic> listData = json.decode(response.body);
-    final List<GroceryItem> _loadedItems = [];
+    final Map<String, dynamic>? listData = json.decode(response.body);
+
+    if (listData == null || listData.isEmpty) {
+      setState(() {
+        _groceryItems = [];
+      });
+      return;
+    }
+
+    final List<GroceryItem> loadedItems = [];
     for (final item in listData.entries) {
       final category = categories.entries
           .firstWhere(
               (element) => element.value.title == item.value['category'])
           .value;
-      _loadedItems.add(
+      loadedItems.add(
         GroceryItem(
           id: item.key,
           name: item.value['name'],
@@ -44,7 +52,7 @@ class _GroceryListState extends State<GroceryList> {
       );
     }
     setState(() {
-      _groceryItems = _loadedItems;
+      _groceryItems = loadedItems;
     });
   }
 
@@ -54,22 +62,21 @@ class _GroceryListState extends State<GroceryList> {
         builder: (ctx) => const NewItem(),
       ),
     );
-
-    _loadItems();
+    // _loadItems(); * No need to reload the list since it's already added
   }
 
   void _deleteItem(String id) async {
     final url = Uri.https('shopping-list-24da1-default-rtdb.firebaseio.com',
         'shopping-list/$id.json');
     await http.delete(url);
-    _loadItems();
+    // _loadItems(); * No need to reload the list since it's already deleted
   }
 
   void _clearList() async {
     final url = Uri.https('shopping-list-24da1-default-rtdb.firebaseio.com',
         'shopping-list.json');
     await http.delete(url);
-    _loadItems();
+    // _loadItems(); * No need to reload the list since it's already cleared
   }
 
   void _undoItemDeletion(GroceryItem item) async {
@@ -92,7 +99,6 @@ class _GroceryListState extends State<GroceryList> {
       // Handle error
       return;
     }
-
     _loadItems(); // Refresh the list
   }
 
